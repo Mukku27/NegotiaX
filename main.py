@@ -15,12 +15,16 @@ st.title("🤝 AI-Powered Negotiation Agent")
 
 st.sidebar.header("Negotiation Settings")
 st.sidebar.markdown("Select your negotiation type and explore the details below.")
-negotiation_type = st.sidebar.selectbox("Negotiation Type", [
+negotiation_types = [
     "Salary Negotiation",
     "Business Deal",
     "Freelance Pricing",
-    "Contract Dispute"
-])
+    "Contract Dispute",
+    "Real Estate Negotiation",
+    "Merger and Acquisition Negotiation",
+    "Dispute Resolution"
+]
+negotiation_type = st.sidebar.selectbox("Negotiation Type", negotiation_types)
 
 with st.expander("How to use this app"):
     st.markdown("""
@@ -37,6 +41,7 @@ You are an expert negotiator. Analyze this scenario and suggest the best negotia
 - **Your Offer:** {your_offer}
 - **Other Party's Expected Offer:** {other_party_stance}
 - **Key Constraints:** {key_constraints}
+- **Scenario:** {scenario}
 
 ### Provide:
 1. The best counteroffer.
@@ -59,6 +64,7 @@ with st.form(key="negotiation_form"):
     with col2:
         other_party_stance = st.text_input("Other Party's Expected Offer (₹ or %):", placeholder="Enter expected counteroffer...", help="Enter your estimate of the other party's initial offer. Use ₹ for rupees or % for percentage.")
     key_constraints = st.text_area("Key Constraints", height=150, placeholder="List deal-breakers, goals, must-haves...", help="List any important constraints, deal-breakers, or goals. Be as specific as possible.")
+    scenario = st.text_area("Scenario Details", height=150, placeholder="Describe the specific scenario (optional)", help="Provide additional context for the negotiation.")
     with st.spinner("Preparing to generate strategy..."):
         submit_button = st.form_submit_button("Generate AI Strategy")
 
@@ -67,7 +73,7 @@ if submit_button:
         with st.spinner("Generating negotiation strategy..."):
             llm = load_LLM(groq_api_key)
             prompt = PromptTemplate(
-                input_variables=["negotiation_type", "your_offer", "other_party_stance", "key_constraints"],
+                input_variables=["negotiation_type", "your_offer", "other_party_stance", "key_constraints", "scenario"],
                 template=negotiation_template
             )
             chain = prompt | llm
@@ -76,7 +82,8 @@ if submit_button:
                 "negotiation_type": negotiation_type,
                 "your_offer": your_offer,
                 "other_party_stance": other_party_stance,
-                "key_constraints": key_constraints
+                "key_constraints": key_constraints,
+                "scenario": scenario
             })
             
             result_content = result.content if hasattr(result, 'content') else str(result)
