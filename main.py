@@ -1,17 +1,29 @@
-import os
 import streamlit as st
 from langchain.prompts import PromptTemplate
 from langchain_groq import ChatGroq
-from dotenv import load_dotenv
-
-load_dotenv()
-groq_api_key = os.getenv("GROQ_API_KEY")
-if not groq_api_key:
-    st.error("Groq API Key not found in .env file. Please check your .env file.")
-    st.stop()
 
 st.set_page_config(page_title="AI Negotiation Agent", layout="wide")
 st.title("🤝 AI-Powered Negotiation Agent")
+
+# Instructions on obtaining a Groq API key
+st.markdown("""
+To use this app, you'll need a Groq API key.  Don't worry, it's free! Here's how to get one:
+
+1. **Go to:** [https://console.groq.com](https://console.groq.com)
+2. **Sign up:** Create a free account (you'll need an email).  You'll get a verification email; click the link inside.
+3. **Log in:** Use your new account details.
+4. **Find API Keys:**  Look for "API Keys" in the left-hand menu.
+5. **Create a key:** Click "Create API Key", give it a name (like "MyNegotiationKey"), and submit.
+6. **Keep it safe!:** Copy your key immediately – you won't see it again! Store it securely.
+
+Now, paste your API key below:
+""")
+
+groq_api_key = st.text_input("Enter your Groq API key:", type="password")
+if not groq_api_key:
+    st.error("Please enter your Groq API key.")
+    st.stop()
+
 
 # Initialize conversation history in session state if not already set
 if "conversation_history" not in st.session_state:
@@ -92,7 +104,7 @@ with st.form(key="negotiation_form"):
     submit_button = st.form_submit_button("Generate AI Strategy")
 
 if submit_button:
-    if your_offer and other_party_stance and key_constraints:
+    if your_offer and other_party_stance and key_constraints and groq_api_key:
         with st.spinner("Generating negotiation strategy..."):
             llm = load_LLM(groq_api_key)
             # Combine previous conversation history into a single string
@@ -132,3 +144,4 @@ if submit_button:
             })
     else:
         st.error("Please fill in all required fields before generating a strategy.")
+
