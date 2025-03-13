@@ -1,147 +1,22 @@
 import streamlit as st
-from langchain.prompts import PromptTemplate
-from langchain_groq import ChatGroq
-
-st.set_page_config(page_title="AI Negotiation Agent", layout="wide")
-st.title("🤝 AI-Powered Negotiation Agent")
-
-# Instructions on obtaining a Groq API key
-st.markdown("""
-To use this app, you'll need a Groq API key.  Don't worry, it's free! Here's how to get one:
-
-1. **Go to:** [https://console.groq.com](https://console.groq.com)
-2. **Sign up:** Create a free account (you'll need an email).  You'll get a verification email; click the link inside.
-3. **Log in:** Use your new account details.
-4. **Find API Keys:**  Look for "API Keys" in the left-hand menu.
-5. **Create a key:** Click "Create API Key", give it a name (like "MyNegotiationKey"), and submit.
-6. **Keep it safe!:** Copy your key immediately – you won't see it again! Store it securely.
-
-Now, paste your API key below:
-""")
-
-groq_api_key = st.text_input("Enter your Groq API key:", type="password")
-if not groq_api_key:
-    st.error("Please enter your Groq API key.")
-    st.stop()
+from components.sidebar import sidebar
+from components.ui_elements import show_instructions, show_conversation_history
+from components.form import negotiation_form
 
 
-# Initialize conversation history in session state if not already set
-if "conversation_history" not in st.session_state:
-    st.session_state["conversation_history"] = []
+def main():
+    st.set_page_config(page_title="AI Negotiation Agent", layout="wide")
+    st.title("🤝 AI-Powered Negotiation Agent")
+    
+    groq_api_key = st.text_input("Enter your Groq API key:", type="password")
+    if not groq_api_key:
+        st.error("Please enter your Groq API key.")
+        st.stop()
+    
+    sidebar()
+    show_instructions()
+    show_conversation_history()
+    negotiation_form()
 
-# Sidebar: Negotiation settings and reset option
-st.sidebar.header("Negotiation Settings")
-st.sidebar.markdown("Select your negotiation type and explore the details below.")
-negotiation_types = [
-    "Salary Negotiation",
-    "Business Deal",
-    "Freelance Pricing",
-    "Contract Dispute",
-    "Real Estate Negotiation",
-    "Merger and Acquisition Negotiation",
-    "Dispute Resolution"
-]
-negotiation_type = st.sidebar.selectbox("Negotiation Type", negotiation_types)
-
-if st.sidebar.button("Reset Conversation"):
-    st.session_state["conversation_history"] = []
-    st.success("Conversation history reset!")
-
-with st.expander("How to use this app"):
-    st.markdown("""
-    1. **Select Negotiation Type:** Choose the type of negotiation from the sidebar.
-    2. **Enter Your Offer:** Specify your initial offer (e.g., salary amount, price, etc.). Use ₹ for rupees or % for percentage.
-    3. **Enter Other Party's Expected Offer:** Provide your estimate of the other party's initial offer. Use ₹ for rupees or % for percentage.
-    4. **Key Constraints:** Detail any important constraints, deal-breakers, or goals. Be as specific as possible.
-    5. **Generate AI Strategy:** Click the button to receive AI-generated negotiation strategies.
-    6. **Multi-turn Simulation:** Previous turns will be preserved below for a history-aware dialogue.
-    """)
-
-# Display previous conversation history
-st.subheader("🗨️ Negotiation History")
-if st.session_state["conversation_history"]:
-    for turn in st.session_state["conversation_history"]:
-        st.markdown(f"**You:** {turn['user']}")
-        st.markdown(f"**AI:** {turn['assistant']}")
-else:
-    st.info("No conversation history yet. Start your negotiation!")
-
-# Updated negotiation template includes conversation history
-negotiation_template = """
-You are an expert negotiator. Analyze this scenario and suggest the best negotiation strategy based on the previous conversation.
-- **Negotiation Type:** {negotiation_type}
-- **Your Offer:** {your_offer}
-- **Other Party's Expected Offer:** {other_party_stance}
-- **Key Constraints:** {key_constraints}
-- **Scenario:** {scenario}
-
-### Previous Negotiation History:
-{history}
-
-### Provide:
-1. The best counteroffer.
-2. Justification with reasoning.
-3. Risk assessment (if any).
-4. Confidence score (out of 100%).
-"""
-
-def load_LLM(groq_api_key):
-    """Loads the ChatGroq model for processing."""
-    llm = ChatGroq(groq_api_key=groq_api_key, model_name="deepseek-r1-distill-llama-70b", streaming=True)
-    return llm
-
-st.header(f"💼 {negotiation_type}")
-st.markdown("Enter details of your negotiation scenario below:")
-
-with st.form(key="negotiation_form"):
-    col1, col2 = st.columns(2)
-    with col1:
-        your_offer = st.text_input("Your Offer (₹ or %):", placeholder="Enter your proposed offer...", help="Enter your initial offer. Use ₹ for rupees or % for percentage.")
-    with col2:
-        other_party_stance = st.text_input("Other Party's Expected Offer (₹ or %):", placeholder="Enter expected counteroffer...", help="Enter your estimate of the other party's initial offer. Use ₹ for rupees or % for percentage.")
-    key_constraints = st.text_area("Key Constraints", height=150, placeholder="List deal-breakers, goals, must-haves...", help="List any important constraints, deal-breakers, or goals. Be as specific as possible.")
-    scenario = st.text_area("Scenario Details", height=150, placeholder="Describe the specific scenario (optional)", help="Provide additional context for the negotiation.")
-    submit_button = st.form_submit_button("Generate AI Strategy")
-
-if submit_button:
-    if your_offer and other_party_stance and key_constraints and groq_api_key:
-        with st.spinner("Generating negotiation strategy..."):
-            llm = load_LLM(groq_api_key)
-            # Combine previous conversation history into a single string
-            history_text = ""
-            for turn in st.session_state["conversation_history"]:
-                history_text += f"You: {turn['user']}\nAI: {turn['assistant']}\n"
-            if not history_text:
-                history_text = "None"
-            
-            # Create the prompt including conversation history
-            prompt = PromptTemplate(
-                input_variables=["negotiation_type", "your_offer", "other_party_stance", "key_constraints", "scenario", "history"],
-                template=negotiation_template
-            )
-            chain = prompt | llm
-            
-            # Invoke the chain to generate AI strategy
-            result = chain.invoke({
-                "negotiation_type": negotiation_type,
-                "your_offer": your_offer,
-                "other_party_stance": other_party_stance,
-                "key_constraints": key_constraints,
-                "scenario": scenario,
-                "history": history_text
-            })
-            
-            result_content = result.content if hasattr(result, 'content') else str(result)
-            
-            st.success("Strategy generated successfully!")
-            st.subheader("💡 AI's Suggested Strategy:")
-            st.markdown(result_content)
-            
-            # Append the new turn to the conversation history
-            st.session_state["conversation_history"].append({
-                "user": f"Offer: {your_offer}, Expected: {other_party_stance}, Constraints: {key_constraints}, Scenario: {scenario}",
-                "assistant": result_content
-            })
-    else:
-        st.error("Please fill in all required fields before generating a strategy.")
-
+if __name__ == "__main__":
+    main()
