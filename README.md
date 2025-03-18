@@ -14,7 +14,7 @@ This project provides an AI-driven negotiation assistant built with Streamlit an
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/negotiaX.git
+   git clone https://github.com/Mukku27/negotiaX.git
    cd negotiaX
    ```
 
@@ -56,4 +56,3 @@ negotiaX/
 ## License
 
 This project is licensed under the MIT License.
-```
