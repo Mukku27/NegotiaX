@@ -1,2 +1,4 @@
 .env
 negotiaX
+__pycache__/
+*.pyc
